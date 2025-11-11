@@ -1,0 +1,21 @@
+{
+  "Hugo Legrand": {
+    "2025-11-10": {
+      "durations_min": {
+        "Active recovery": 120,
+        "RE Génération": 20,
+        "FAT MAX": 30,
+        "Aerobic capacity": 0,
+        "Threshold zone": 0,
+        "VO2 Max zone": 0,
+        "Anaerobic capacity": 0,
+        "CP/NP Neuromuscular": 0
+      },
+      "pal": 1.35,
+      "bmr": 2174,
+      "base": 2935,
+      "training_kcal": 1581,
+      "tdee": 4516
+    }
+  }
+}

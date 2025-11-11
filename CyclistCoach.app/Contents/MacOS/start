@@ -1,0 +1,4 @@
+#!/bin/bash
+cd "$HOME/Documents/Cyclist Energy Coach/cyclist_ui_streamlit"
+source .venv/bin/activate
+python -m streamlit run streamlit_app.py --server.port 8503

@@ -1,0 +1,69 @@
+{
+  "Hugo Legrand": {
+    "name": "Hugo Legrand",
+    "sex": "M",
+    "birth": "2001-05-04",
+    "height_cm": 191,
+    "weight_kg": 86.0,
+    "bmr_manual": 0,
+    "pal": 1.4,
+    "zones": [
+      {
+        "name": "Active recovery",
+        "min_w": 0,
+        "max_w": 180,
+        "mean_w": 90.0,
+        "eff": 0.207
+      },
+      {
+        "name": "RE Génération",
+        "min_w": 180,
+        "max_w": 220,
+        "mean_w": 200.0,
+        "eff": 0.207
+      },
+      {
+        "name": "FAT MAX",
+        "min_w": 250,
+        "max_w": 285,
+        "mean_w": 267.5,
+        "eff": 0.207
+      },
+      {
+        "name": "Aerobic capacity",
+        "min_w": 285,
+        "max_w": 310,
+        "mean_w": 297.5,
+        "eff": 0.207
+      },
+      {
+        "name": "Threshold zone",
+        "min_w": 310,
+        "max_w": 350,
+        "mean_w": 330.0,
+        "eff": 0.207
+      },
+      {
+        "name": "VO2 Max zone",
+        "min_w": 350,
+        "max_w": 440,
+        "mean_w": 395.0,
+        "eff": 0.207
+      },
+      {
+        "name": "Anaerobic capacity",
+        "min_w": 440,
+        "max_w": 550,
+        "mean_w": 495.0,
+        "eff": 0.207
+      },
+      {
+        "name": "CP/NP Neuromuscular",
+        "min_w": 550,
+        "max_w": 1400,
+        "mean_w": 975.0,
+        "eff": 0.207
+      }
+    ]
+  }
+}
