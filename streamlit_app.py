@@ -17,26 +17,36 @@ DATA_DIR.mkdir(exist_ok=True)
 PROFILES_PATH = DATA_DIR / "profiles.json"
 DIARY_PATH   = DATA_DIR / "diary.json"
 
-# ---------------- Logo helpers ----------------
+# ---------------- Helpers d'images (logos) ----------------
 def show_image_if_exists(path_candidates, place="main", width=None):
-    """Essaie d'afficher la première image existante parmi path_candidates."""
+    """
+    Affiche la première image existante parmi path_candidates.
+    Anti-crash :
+      - Force width >= 1
+      - Pas de use_column_width / use_container_width
+      - Try/except pour éviter l'erreur 'Invalid image width: 0'
+    """
+    safe_width = 160
+    if isinstance(width, (int, float)) and width and width > 0:
+        safe_width = int(width)
+    safe_width = max(1, safe_width)
+
     for p in path_candidates:
         pth = Path(p)
-        if pth.exists():
-            if place == "sidebar":
-                if width is None:
-                    st.sidebar.image(str(pth), use_column_width=True)
+        if pth.exists() and pth.is_file():
+            try:
+                if place == "sidebar":
+                    st.sidebar.image(str(pth), width=safe_width)
                 else:
-                    st.sidebar.image(str(pth), width=width)
-            else:
-                if width is None:
-                    st.image(str(pth), use_column_width=True)
-                else:
-                    st.image(str(pth), width=width)
+                    st.image(str(pth), width=safe_width)
+            except Exception as e:
+                where = "sidebar" if place == "sidebar" else "page"
+                st.warning(f"Logo désactivé ({where}) : {pth.name} – {e}")
+                return False
             return True
     return False
 
-# ---------------- JSON helpers ----------------
+# ---------------- Helpers JSON ----------------
 def load_json(path, default):
     if path.exists():
         try:
@@ -93,35 +103,38 @@ def ensure_full_recovery_zone(profile: dict):
     else:
         zones[full_idx]["min_w"] = 0
         zones[full_idx]["max_w"] = active_min
-        # s’assurer qu’elle est avant Active
         if full_idx > act_idx:
             z = zones.pop(full_idx)
             zones.insert(act_idx, z)
 
     profile["zones"] = zones
 
-# ---------------- Data ----------------
+# ---------------- Données ----------------
 profiles = load_json(PROFILES_PATH, {})
 diary    = load_json(DIARY_PATH, {})
 
-# ---------------- Top of main page (ColorCode logo) ----------------
-_ = show_image_if_exists(
-    ["assets/colorcode.png", "colorcode.png", "image.png"],
-    place="main", width=160
-)
+# ---------------- Barre latérale (toggle logos) ----------------
+authenticated = True
+with st.sidebar:
+    st.header("Profil")
+    disable_logos = st.checkbox("Désactiver les logos (debug)", value=False)
+
+# ---------------- Haut de page principal (logo ColorCode) ----------------
+if not disable_logos:
+    _ = show_image_if_exists(
+        ["assets/colorcode.png", "colorcode.png", "image.png"],
+        place="main", width=160
+    )
 
 st.title("Cyclist Energy Coach — Profil, Zones & Journal")
 
-# ---------------- Sidebar ----------------
-authenticated = True
+# ---------------- Sidebar suite ----------------
 with st.sidebar:
-    # HL logo
-    show_image_if_exists(
-        ["assets/HLD-LG3.png", "assets/hl.png", "HLD-LG3.png", "hl.png"],
-        place="sidebar", width=140
-    )
-
-    st.header("Profil")
+    if not disable_logos:
+        show_image_if_exists(
+            ["assets/HLD-LG3.png", "assets/hl.png", "HLD-LG3.png", "hl.png"],
+            place="sidebar", width=140
+        )
 
     profile_names = sorted(profiles.keys())
     mode = st.radio("Mode", ["Sélectionner un profil", "Créer / Modifier un profil"], horizontal=False)
@@ -134,7 +147,7 @@ with st.sidebar:
     st.divider()
     st.caption("Crée/enregistre un profil puis utilise le Journal pour saisir les durées par zone.")
 
-    # Vérification du PIN à l'ouverture d'un profil existant
+    # Vérification du PIN
     if mode == "Sélectionner un profil" and selected and selected in profiles:
         pin_saved = str(profiles[selected].get("pin", "") or "")
         if pin_saved:
@@ -143,7 +156,7 @@ with st.sidebar:
                 authenticated = False
                 st.warning("PIN incorrect")
 
-    # Suppression du profil sélectionné (et de son journal)
+    # Suppression profil
     if mode == "Sélectionner un profil" and selected:
         st.markdown("### Supprimer ce profil")
         st.caption("Cette action supprime aussi l'historique (journal) associé.")
@@ -160,7 +173,7 @@ with st.sidebar:
             else:
                 st.error("Saisie invalide. Tape exactement : SUPPRIMER")
 
-# ---------------- Defaults ----------------
+# ---------------- Defaults profil ----------------
 def init_profile_dict():
     return {
         "name": "",
@@ -172,7 +185,6 @@ def init_profile_dict():
         "pal": 1.4,
         "pin": "",
         "zones": [
-            # Full recovery par défaut 0 -> 120 ; Active recovery commence à 120
             {"name": "Full recovery",       "min_w": 0,   "max_w": 120,  "mean_w": 60.0,  "eff": 0.207},
             {"name": "Active recovery",     "min_w": 120, "max_w": 180,  "mean_w": 100,   "eff": 0.207},
             {"name": "RE Génération",       "min_w": 180, "max_w": 220,  "mean_w": 200,   "eff": 0.207},
@@ -186,9 +198,9 @@ def init_profile_dict():
     }
 
 # Sélection du profil courant
-if selected and selected in profiles:
+if 'selected' in locals() and selected and selected in profiles:
     profile = profiles[selected]
-elif selected:
+elif 'selected' in locals() and selected:
     profile = init_profile_dict()
     profile["name"] = selected
 else:
@@ -198,13 +210,13 @@ else:
 if profile:
     ensure_full_recovery_zone(profile)
 
-# ---------------- Tabs ----------------
+# ---------------- Onglets ----------------
 tabs = st.tabs(["🧾 Profil & Zones", "📅 Journal (durées par zone)", "📈 Historique"])
 
-# ---------- Tab 1 : Profil & Zones ----------
+# ---------- Onglet 1 : Profil & Zones ----------
 with tabs[0]:
     st.subheader("Mes infos")
-    if not profile or (selected and selected in profiles and not authenticated):
+    if not profile or ('selected' in locals() and selected in profiles and not authenticated):
         st.info("Choisis un profil existant (et entre le PIN s'il est défini) ou entre un nom dans la barre latérale pour créer un profil.")
     else:
         c1, c2, c3, c4 = st.columns(4)
@@ -272,10 +284,10 @@ with tabs[0]:
             save_json(PROFILES_PATH, profiles)
             st.success("Profil enregistré.")
 
-# ---------- Tab 2 : Journal ----------
+# ---------- Onglet 2 : Journal ----------
 with tabs[1]:
     st.subheader("Journal : Durée passée dans chaque zone")
-    if not profile or (selected and selected in profiles and not authenticated):
+    if not profile or ('selected' in locals() and selected in profiles and not authenticated):
         st.info("Crée/enregistre d'abord un profil (et entre le PIN s'il est défini) dans l'onglet 'Profil & Zones'.")
     else:
         day = st.date_input("Choisir la date", value=date.today(), format="DD/MM/YYYY")
@@ -298,23 +310,37 @@ with tabs[1]:
         pal_label  = st.selectbox("PAL du jour (activité hors entraînement)", labels, index=default_index)
         pal_du_jour = float(pal_options[labels.index(pal_label)][0])
 
+        # Copie des zones du jour (pour overrides sans toucher au profil)
         zones_for_day = copy.deepcopy(profile["zones"])
         tmp_prof = {"zones": zones_for_day}
         ensure_full_recovery_zone(tmp_prof)
         zones_for_day = tmp_prof["zones"]
 
+        # Saisie minutes + W moyen du jour (optionnel) pour chaque zone
         cols = st.columns(2)
         durations = {}
+        zone_w_overrides = {}  # ne stocke que les overrides > 0
+
         for i, z in enumerate(zones_for_day):
-            col = cols[i % 2]
-            with col:
-                nm = z.get("name") or f"Zone {i+1}"
-                durations[nm] = st.number_input(f"{nm} (minutes)", min_value=0, value=0, key=f"dur_{i}")
+            nm = z.get("name") or f"Zone {i+1}"
+            with cols[i % 2]:
+                minutes = st.number_input(f"{nm} — minutes", min_value=0, value=0, step=1, key=f"min_{i}")
+                w_day   = st.number_input(f"{nm} — W moyen du jour (optionnel)", min_value=0, value=0, step=5, key=f"w_{i}")
+            durations[nm] = int(minutes)
+            if w_day and w_day > 0:
+                zone_w_overrides[nm] = float(w_day)
+
+        # Appliquer les overrides (sans modifier le profil)
+        zones_for_calc = copy.deepcopy(zones_for_day)
+        if zone_w_overrides:
+            for z in zones_for_calc:
+                nm = z.get("name")
+                if nm in zone_w_overrides:
+                    z["mean_w"] = zone_w_overrides[nm]
 
         # Calculs énergie
-        bmr_manual = profile.get("bmr_manual")
-        if bmr_manual:
-            bmr_val = float(bmr_manual)
+        if profile.get("bmr_manual"):
+            bmr_val = float(profile["bmr_manual"])
         else:
             age = age_from_birthdate(pd.to_datetime(profile["birth"]).date())
             bmr_val = bmr_tenhaaf(
@@ -325,7 +351,7 @@ with tabs[1]:
             )
 
         base       = int(round(bmr_val * pal_du_jour))
-        train_kcal = training_kcal_from_zone_minutes(zones_for_day, durations, 0.207)
+        train_kcal = training_kcal_from_zone_minutes(zones_for_calc, durations, 0.207)
         tdee       = base + train_kcal
 
         st.divider()
@@ -346,14 +372,15 @@ with tabs[1]:
                 "base": base,
                 "training_kcal": train_kcal,
                 "tdee": tdee,
+                "zone_w_overrides": zone_w_overrides,  # <-- sauvegarde des W moyens saisis
             }
             save_json(DIARY_PATH, diary)
             st.success("Journée enregistrée.")
 
-# ---------- Tab 3 : Historique ----------
+# ---------- Onglet 3 : Historique ----------
 with tabs[2]:
     st.subheader("Historique")
-    if not profile or (selected and selected in profiles and not authenticated):
+    if not profile or ('selected' in locals() and selected in profiles and not authenticated):
         st.info("Aucune journée visible (profil non sélectionné ou PIN incorrect).")
     else:
         rows = []
